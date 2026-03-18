@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Wer sagt was?</title>
+    <style>
+        :root {
+            --attendant-color: #0055a4;
+            --passenger-color: #2c3e50;
+            --success: #28a745;
+            --error: #dc3545;
+            --bg: #f0f2f5;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-card {
+            background: white;
+            width: 100%;
+            max-width: 600px;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+            margin-top: 20px;
+        }
+
+        h1 { color: var(--attendant-color); font-size: 1.5rem; margin-bottom: 10px; }
+        .instructions { color: #666; margin-bottom: 30px; }
+
+        /* Phrase Display */
+        .phrase-container {
+            min-height: 120px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #f8fafc;
+            border: 2px dashed #cbd5e0;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            padding: 20px;
+            transition: all 0.3s;
+        }
+
+        #phrase-text {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #1a202c;
+        }
+
+        /* Buttons */
+        .choice-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .btn-choice {
+            border: none;
+            border-radius: 12px;
+            padding: 20px 10px;
+            color: white;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .btn-choice:active { transform: scale(0.95); }
+
+        .btn-attendant { background-color: var(--attendant-color); }
+        .btn-passenger { background-color: var(--passenger-color); }
+
+        .icon { font-size: 2rem; }
+
+        /* Feedback */
+        #feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            height: 1.5rem;
+        }
+
+        .progress {
+            margin-top: 20px;
+            font-size: 0.9rem;
+            color: #718096;
+        }
+
+        /* Final State */
+        .restart-btn {
+            display: none;
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: var(--attendant-color);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Animations */
+        .correct-flash { background-color: #d4edda !important; border-color: var(--success) !important; }
+        .wrong-flash { background-color: #f8d7da !important; border-color: var(--error) !important; animation: shake 0.4s; }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @media (max-width: 480px) {
+            .choice-grid { grid-template-columns: 1fr; }
+            #phrase-text { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-card">
+        <h1>Кто это говорит?</h1>
+        <p class="instructions">Wer sagt diesen Satz? Klicke auf die richtige Person.</p>
+
+        <div class="phrase-container" id="display">
+            <div id="phrase-text">Wird geladen...</div>
+        </div>
+
+        <div class="choice-grid" id="controls">
+            <button class="btn-choice btn-attendant" onclick="checkAnswer('attendant')">
+                <span class="icon">🧑‍✈️</span>
+                <span>Бортпроводник</span>
+                <small>(Flugbegleiter)</small>
+            </button>
+            <button class="btn-choice btn-passenger" onclick="checkAnswer('passenger')">
+                <span class="icon">🧳</span>
+                <span>Пассажир</span>
+                <small>(Passagier)</small>
+            </button>
+        </div>
+
+        <div id="feedback"></div>
+        <div class="progress" id="progress"></div>
+        <button class="restart-btn" id="restart" onclick="startGame()">Neustart</button>
+    </div>
+
+    <script>
+        const data = [
+            { text: "Извините, я не могу найти свое место.", role: "passenger" },
+            { text: "Покажите, пожалуйста, ваш посадочный талон.", role: "attendant" },
+            { text: "Ваше место 21Б. Это место посередине.", role: "attendant" },
+            { text: "Уберите вашу сумку на багажную полку.", role: "attendant" },
+            { text: "Хорошо. А когда принесут напитки?", role: "passenger" },
+            { text: "Пристегните ремни и поднимите столик.", role: "attendant" },
+            { text: "Что вы желаете: чай или кофе?", role: "attendant" },
+            { text: "Мне, пожалуйста, кофе без сахара.", role: "passenger" },
+            { text: "Курица или рыба?", role: "attendant" },
+            { text: "Могу я попросить у вас стакан воды?", role: "passenger" },
+            { text: "У вас есть черный чай?", role: "passenger" },
+            { text: "Не вставайте до полной остановки самолета.", role: "attendant" }
+        ];
+
+        let currentIndex = 0;
+        let score = 0;
+        let shuffledData = [];
+
+        function startGame() {
+            shuffledData = [...data].sort(() => Math.random() - 0.5);
+            currentIndex = 0;
+            score = 0;
+            document.getElementById('restart').style.display = 'none';
+            document.getElementById('controls').style.opacity = '1';
+            document.getElementById('controls').style.pointerEvents = 'auto';
+            updateUI();
+        }
+
+        function updateUI() {
+            if (currentIndex < shuffledData.length) {
+                document.getElementById('phrase-text').innerText = shuffledData[currentIndex].text;
+                document.getElementById('progress').innerText = `Phrase ${currentIndex + 1} von ${shuffledData.length}`;
+                document.getElementById('feedback').innerText = "";
+                document.getElementById('display').className = "phrase-container";
+            } else {
+                showEnd();
+            }
+        }
+
+        function checkAnswer(choice) {
+            const correctRole = shuffledData[currentIndex].role;
+            const display = document.getElementById('display');
+            const feedback = document.getElementById('feedback');
+
+            if (choice === correctRole) {
+                score++;
+                display.classList.add('correct-flash');
+                feedback.innerText = "Правильно! ✅";
+                feedback.style.color = "var(--success)";
+            } else {
+                display.classList.add('wrong-flash');
+                feedback.innerText = "Неправильно! ❌";
+                feedback.style.color = "var(--error)";
+            }
+
+            // Kurze Pause, dann nächste Phrase
+            document.getElementById('controls').style.pointerEvents = 'none';
+            setTimeout(() => {
+                currentIndex++;
+                document.getElementById('controls').style.pointerEvents = 'auto';
+                updateUI();
+            }, 1200);
+        }
+
+        function showEnd() {
+            document.getElementById('phrase-text').innerText = `Fertig! Ergebnis: ${score} von ${shuffledData.length}`;
+            document.getElementById('controls').style.opacity = '0.3';
+            document.getElementById('controls').style.pointerEvents = 'none';
+            document.getElementById('restart').style.display = 'inline-block';
+            document.getElementById('feedback').innerText = score > 10 ? "Отлично! (Ausgezeichnet!)" : "Хорошо! (Gut gemacht!)";
+        }
+
+        window.onload = startGame;
+    </script>
+</body>
+</html>
