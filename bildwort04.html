@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Im Flugzeug</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --light-blue: #e7f0f8;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --text-color: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+
+        h1 { color: var(--primary-blue); text-align: center; margin-bottom: 10px; }
+        .instructions { text-align: center; max-width: 600px; margin-bottom: 20px; font-style: normal; }
+
+        .game-container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Wort-Pool */
+        .word-pool {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            min-height: 60px;
+        }
+
+        .word-card {
+            background-color: var(--light-blue);
+            border: 2px solid var(--primary-blue);
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.2s;
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        .word-card.selected {
+            background-color: var(--primary-blue);
+            color: white;
+            transform: scale(1.05);
+        }
+
+        .word-card.matched {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        /* Bild-Gitter */
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .image-slot {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .image-slot:active {
+            transform: scale(0.98);
+        }
+
+        .img-placeholder {
+            width: 100%;
+            height: 140px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 50px;
+            background: linear-gradient(135deg, #f0f0f0, #d0d0d0);
+        }
+
+        .label {
+            margin-top: 10px;
+            font-weight: bold;
+            color: #666;
+            font-size: 0.9em;
+        }
+
+        .drop-zone {
+            width: 85%;
+            min-height: 45px;
+            margin: 15px;
+            border: 2px dashed #ccc;
+            border-radius: 8px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 5px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .drop-zone.correct {
+            background-color: var(--success-green);
+            color: white;
+            border-style: solid;
+            border-color: var(--success-green);
+        }
+
+        .drop-zone.wrong {
+            background-color: var(--error-red);
+            color: white;
+            animation: shake 0.4s;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        /* Steuerung */
+        .controls {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+            margin-top: 30px;
+            width: 100%;
+        }
+
+        #feedback {
+            font-weight: bold;
+            font-size: 1.2em;
+            height: 1.5em;
+            text-align: center;
+        }
+
+        .btn-restart {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1em;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: background 0.3s;
+        }
+
+        .btn-restart:hover {
+            background-color: #003d7a;
+        }
+
+        /* Mobile */
+        @media (max-width: 600px) {
+            .image-grid { grid-template-columns: 1fr; }
+            body { padding: 10px; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>В самолёте (Im Flugzeug)</h1>
+    <p class="instructions">Klicke zuerst auf ein russisches Wort und dann auf das passende Bild.</p>
+
+    <div class="game-container">
+        <!-- Pool der russischen Wörter -->
+        <div class="word-pool" id="wordPool">
+            <div class="word-card" data-match="tisch">столик</div>
+            <div class="word-card" data-match="gurt">ремень</div>
+            <div class="word-card" data-match="blende">шторка иллюминатора</div>
+            <div class="word-card" data-match="gepaeck">багажная полка</div>
+            <div class="word-card" data-match="armlehne">подлокотник</div>
+            <div class="word-card" data-match="rueckenlehne">спинка кресла</div>
+        </div>
+
+        <!-- Gitter mit 6 Bildern -->
+        <div class="image-grid" id="imageGrid">
+            <div class="image-slot" onclick="checkMatch('tisch', this)">
+                <div class="img-placeholder">🍽️</div>
+                <div class="label">Klapptisch</div>
+                <div class="drop-zone" id="dz-tisch">Wort wählen...</div>
+            </div>
+
+            <div class="image-slot" onclick="checkMatch('gurt', this)">
+                <div class="img-placeholder">🔒</div>
+                <div class="label">Anschnallgurt</div>
+                <div class="drop-zone" id="dz-gurt">Wort wählen...</div>
+            </div>
+
+            <div class="image-slot" onclick="checkMatch('blende', this)">
+                <div class="img-placeholder">🪟</div>
+                <div class="label">Fensterblende</div>
+                <div class="drop-zone" id="dz-blende">Wort wählen...</div>
+            </div>
+
+            <div class="image-slot" onclick="checkMatch('gepaeck', this)">
+                <div class="img-placeholder">🧳</div>
+                <div class="label">Gepäckfach</div>
+                <div class="drop-zone" id="dz-gepaeck">Wort wählen...</div>
+            </div>
+
+            <div class="image-slot" onclick="checkMatch('armlehne', this)">
+                <div class="img-placeholder">🛋️</div>
+                <div class="label">Armlehne</div>
+                <div class="drop-zone" id="dz-armlehne">Wort wählen...</div>
+            </div>
+
+            <div class="image-slot" onclick="checkMatch('rueckenlehne', this)">
+                <div class="img-placeholder">📐</div>
+                <div class="label">Rückenlehne</div>
+                <div class="drop-zone" id="dz-rueckenlehne">Wort wählen...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div id="feedback"></div>
+        <button class="btn-restart" onclick="initGame()">Neustart</button>
+    </div>
+
+    <script>
+        let selectedWord = null;
+        let selectedElement = null;
+        const totalItems = 6;
+
+        function initGame() {
+            // Variablen zurücksetzen
+            selectedWord = null;
+            selectedElement = null;
+            document.getElementById('feedback').innerText = "";
+            document.getElementById('feedback').style.color = "inherit";
+
+            // Wort-Karten zurücksetzen
+            const cards = document.querySelectorAll('.word-card');
+            cards.forEach(card => {
+                card.classList.remove('selected', 'matched');
+            });
+
+            // Drop-Zones zurücksetzen
+            const zones = document.querySelectorAll('.drop-zone');
+            zones.forEach(zone => {
+                zone.innerText = "Wort wählen...";
+                zone.classList.remove('correct', 'wrong');
+            });
+
+            // Wörter mischen
+            shuffleWords();
+        }
+
+        // Event-Listener für Wort-Karten
+        document.querySelectorAll('.word-card').forEach(card => {
+            card.addEventListener('click', function() {
+                if (this.classList.contains('matched')) return;
+
+                document.querySelectorAll('.word-card').forEach(c => c.classList.remove('selected'));
+                this.classList.add('selected');
+                selectedWord = this.getAttribute('data-match');
+                selectedElement = this;
+                document.getElementById('feedback').innerText = "Klicke jetzt auf das passende Bild!";
+                document.getElementById('feedback').style.color = "var(--primary-blue)";
+            });
+        });
+
+        function checkMatch(imageID, slotElement) {
+            const dropZone = slotElement.querySelector('.drop-zone');
+
+            // Wenn schon korrekt zugeordnet, nichts tun
+            if (dropZone.classList.contains('correct')) return;
+
+            if (!selectedWord) {
+                document.getElementById('feedback').innerText = "Wähle zuerst oben ein russisches Wort!";
+                document.getElementById('feedback').style.color = "orange";
+                return;
+            }
+
+            if (selectedWord === imageID) {
+                // Erfolg
+                dropZone.innerText = selectedElement.innerText;
+                dropZone.classList.add('correct');
+                selectedElement.classList.add('matched');
+                
+                selectedWord = null;
+                selectedElement = null;
+                document.getElementById('feedback').innerText = "Richtig! ✅";
+                document.getElementById('feedback').style.color = "var(--success-green)";
+                
+                checkWin();
+            } else {
+                // Fehler
+                dropZone.classList.add('wrong');
+                document.getElementById('feedback').innerText = "Das passt nicht. Versuchs nochmal! ❌";
+                document.getElementById('feedback').style.color = "var(--error-red)";
+                
+                setTimeout(() => {
+                    dropZone.classList.remove('wrong');
+                }, 500);
+            }
+        }
+
+        function checkWin() {
+            const matchedCount = document.querySelectorAll('.drop-zone.correct').length;
+            if (matchedCount === totalItems) {
+                document.getElementById('feedback').innerText = "🎉 Super! Du hast alle 6 Begriffe gelernt!";
+            }
+        }
+
+        function shuffleWords() {
+            const pool = document.getElementById('wordPool');
+            for (let i = pool.children.length; i >= 0; i--) {
+                pool.appendChild(pool.children[Math.random() * i | 0]);
+            }
+        }
+
+        // Spiel beim Laden starten
+        window.onload = initGame;
+    </script>
+</body>
+</html>
