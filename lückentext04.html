@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: 10 Lücken im Flugzeug</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --bg-color: #f0f4f8;
+            --text-color: #2d3748;
+            --correct-green: #28a745;
+            --wrong-red: #dc3545;
+            --border-color: #cbd5e0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            line-height: 1.7;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: var(--primary-blue);
+            text-align: center;
+            font-size: 1.6rem;
+            margin-bottom: 10px;
+        }
+
+        .instructions {
+            text-align: center;
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 0.95rem;
+        }
+
+        .dialog-box {
+            font-size: 1.15rem;
+            background: #fff;
+            padding: 10px;
+            border-radius: 8px;
+            white-space: pre-wrap;
+        }
+
+        /* Lücken-Styling */
+        .gap {
+            display: inline-block;
+            min-width: 100px;
+            border-bottom: 2px solid var(--primary-blue);
+            background: #f8fafc;
+            padding: 0 10px;
+            margin: 0 4px;
+            cursor: pointer;
+            text-align: center;
+            font-weight: bold;
+            color: var(--primary-blue);
+            transition: all 0.2s;
+            border-radius: 4px;
+        }
+
+        .gap:hover { background: #e2e8f0; }
+
+        /* Statusfarben nach Auswahl */
+        .gap.correct { 
+            border-color: var(--correct-green); 
+            color: var(--correct-green); 
+            background: #f0fff4; 
+            cursor: default;
+        }
+        .gap.wrong { 
+            border-color: var(--wrong-red); 
+            color: var(--wrong-red); 
+            background: #fff5f5; 
+        }
+
+        /* Modal Overlay für die Auswahl */
+        .options-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(2px);
+        }
+
+        .options-menu {
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            width: 85%;
+            max-width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .option-btn {
+            padding: 16px;
+            border: 2px solid #edf2f7;
+            border-radius: 10px;
+            background: white;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-color);
+            transition: all 0.2s;
+            text-align: center;
+        }
+
+        .option-btn:hover { 
+            background: var(--primary-blue); 
+            color: white; 
+            border-color: var(--primary-blue);
+        }
+
+        /* Buttons Steuerung */
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: opacity 0.2s;
+        }
+
+        .btn-solution { background-color: #ed8936; }
+        .btn-reset { background-color: #718096; }
+        .btn:active { transform: scale(0.96); }
+
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            .dialog-box { font-size: 1.05rem; }
+            .gap { min-width: 90px; }
+            .controls { flex-direction: column; }
+            .btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>В самолёте (Im Flugzeug)</h1>
+    <p class="instructions">Klicke auf die Lücken und wähle das richtige Wort. Du erhältst sofort Feedback.</p>
+    
+    <div class="dialog-box" id="dialog">
+— Извините, я не могу найти свое <span class="gap" data-answer="место" id="gap0">...</span>.
+— Покажите, пожалуйста, ваш посадочный <span class="gap" data-answer="талон" id="gap1">...</span>.
+— Ваше место 21Б. Уберите вашу сумку на багажную <span class="gap" data-answer="полку" id="gap2">...</span>.
+— Пожалуйста, поднимите спинку <span class="gap" data-answer="кресла" id="gap3">...</span> и откройте шторку <span class="gap" data-answer="иллюминатора" id="gap4">...</span>.
+— Также нужно пристегнуть <span class="gap" data-answer="ремни" id="gap5">...</span> и выключить <span class="gap" data-answer="телефон" id="gap6">...</span>.
+— Что вы желаете? Могу я принести вам <span class="gap" data-answer="воду" id="gap7">...</span>?
+— Да, пожалуйста. У вас есть курица или <span class="gap" data-answer="рыба" id="gap8">...</span>?
+— Рыба, пожалуйста.
+— Наш самолет готовится к <span class="gap" data-answer="посадке" id="gap9">...</span>. Спасибо!
+    </div>
+
+    <div class="controls">
+        <button class="btn btn-solution" onclick="showSolution()">Lösung anzeigen</button>
+        <button class="btn btn-reset" onclick="resetGame()">Neustart</button>
+    </div>
+</div>
+
+<!-- Modal für die Auswahl -->
+<div class="options-overlay" id="overlay">
+    <div class="options-menu" id="options-menu">
+        <!-- Buttons werden dynamisch erzeugt -->
+    </div>
+</div>
+
+<script>
+    // 10 Gaps mit je 1 richtigen und 2 falschen Optionen
+    const allOptions = [
+        ["место", "окно", "сумку"],           // 0
+        ["талон", "билет", "паспорт"],        // 1
+        ["полку", "стол", "пол"],             // 2
+        ["кресла", "двери", "окна"],          // 3
+        ["иллюминатора", "багажа", "ряда"],   // 4
+        ["ремни", "кнопки", "руки"],          // 5
+        ["телефон", "свет", "мотор"],         // 6
+        ["воду", "кофе", "сахар"],            // 7
+        ["рыба", "мясо", "соль"],             // 8
+        ["посадке", "взлёту", "обеду"]         // 9
+    ];
+
+    let activeGapId = null;
+
+    // Lücken aktivieren
+    document.querySelectorAll('.gap').forEach((gap, index) => {
+        gap.addEventListener('click', () => {
+            // Wenn schon korrekt, Auswahl nicht mehr öffnen
+            if (gap.classList.contains('correct')) return;
+            
+            activeGapId = index;
+            showOptionsMenu(index);
+        });
+    });
+
+    function showOptionsMenu(index) {
+        const overlay = document.getElementById('overlay');
+        const menu = document.getElementById('options-menu');
+        menu.innerHTML = "";
+
+        // Optionen zufällig mischen
+        const shuffled = [...allOptions[index]].sort(() => Math.random() - 0.5);
+
+        shuffled.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerText = opt;
+            btn.onclick = () => selectOption(opt);
+            menu.appendChild(btn);
+        });
+
+        overlay.style.display = 'flex';
+    }
+
+    function selectOption(val) {
+        const gap = document.getElementById('gap' + activeGapId);
+        const correctAnswer = gap.getAttribute('data-answer');
+        
+        gap.innerText = val;
+        
+        // Direktes Feedback
+        if (val === correctAnswer) {
+            gap.classList.remove('wrong');
+            gap.classList.add('correct');
+        } else {
+            gap.classList.remove('correct');
+            gap.classList.add('wrong');
+        }
+        
+        closeOverlay();
+    }
+
+    function closeOverlay() {
+        document.getElementById('overlay').style.display = 'none';
+    }
+
+    // Schließen bei Klick außerhalb
+    document.getElementById('overlay').addEventListener('click', function(e) {
+        if (e.target === this) closeOverlay();
+    });
+
+    function showSolution() {
+        document.querySelectorAll('.gap').forEach(gap => {
+            gap.innerText = gap.getAttribute('data-answer');
+            gap.classList.remove('wrong');
+            gap.classList.add('correct');
+        });
+    }
+
+    function resetGame() {
+        document.querySelectorAll('.gap').forEach(gap => {
+            gap.innerText = "...";
+            gap.classList.remove('correct', 'wrong');
+        });
+    }
+</script>
+
+</body>
+</html>
