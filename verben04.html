@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Verben-Zuordnung</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --light-bg: #f8fafc;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --text-dark: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            color: var(--text-dark);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+
+        h1 { color: var(--primary-blue); text-align: center; font-size: 1.5rem; margin-bottom: 5px; }
+        .instructions { text-align: center; color: #666; margin-bottom: 30px; font-size: 0.95rem; }
+
+        .matching-area {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .column {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .column-title {
+            text-align: center;
+            font-weight: bold;
+            color: var(--primary-blue);
+            margin-bottom: 10px;
+            font-size: 0.85rem;
+            text-transform: uppercase;
+        }
+
+        .verb-tile {
+            background: var(--light-bg);
+            border: 2px solid #e2e8f0;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s ease;
+            min-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+        }
+
+        /* Zustände */
+        .verb-tile.selected { border-color: var(--primary-blue); background: var(--primary-blue); color: white; }
+        .verb-tile.matched { cursor: default; color: white; border: none; }
+        
+        .verb-tile.error {
+            background: var(--error-red) !important;
+            border-color: var(--error-red) !important;
+            color: white;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        .feedback { height: 40px; text-align: center; margin-top: 20px; font-weight: bold; font-size: 1.1rem; }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: opacity 0.3s;
+        }
+
+        .btn-restart { background: var(--primary-blue); }
+        .btn-solution { background: #ed8936; }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        @media (max-width: 600px) {
+            .matching-area { gap: 10px; }
+            .verb-tile { font-size: 0.85rem; padding: 10px 5px; }
+            .controls { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-container">
+        <h1>Инфинитив или Императив?</h1>
+        <p class="instructions">Verbinde die Grundform mit der Befehlsform. „Lösung“ zeigt die Paare farblich sortiert.</p>
+
+        <div class="matching-area">
+            <div class="column" id="inf-col">
+                <div class="column-title">Infinitiv</div>
+            </div>
+            <div class="column" id="imp-col">
+                <div class="column-title">Imperativ</div>
+            </div>
+        </div>
+
+        <div class="feedback" id="feedback"></div>
+
+        <div class="controls">
+            <button class="btn btn-solution" id="sol-btn" onclick="showSolution()">Lösung zeigen</button>
+            <button class="btn btn-restart" onclick="initGame()">Neustart</button>
+        </div>
+    </div>
+
+    <script>
+        const verbPairs = [
+            { inf: "пристегнуть", imp: "пристегните", color: "#e6194b" }, // Rot
+            { inf: "поднять", imp: "поднимите", color: "#3cb44b" },      // Grün
+            { inf: "убрать", imp: "уберите", color: "#4363d8" },        // Blau
+            { inf: "открыть", imp: "откройте", color: "#f58231" },      // Orange
+            { inf: "опустить", imp: "опустите", color: "#911eb4" },     // Lila
+            { inf: "отключить", imp: "отключите", color: "#42d4f4" },   // Cyan
+            { inf: "снять", imp: "снимите", color: "#f032e6" },         // Magenta
+            { inf: "занять", imp: "займите", color: "#fabed4" }         // Rosa
+        ];
+
+        let selectedInf = null;
+        let selectedImp = null;
+        let matchesFound = 0;
+        let isSolved = false;
+
+        function initGame() {
+            matchesFound = 0;
+            isSolved = false;
+            selectedInf = null;
+            selectedImp = null;
+            document.getElementById('feedback').innerText = "";
+            document.getElementById('sol-btn').disabled = false;
+            
+            const infCol = document.getElementById('inf-col');
+            const impCol = document.getElementById('imp-col');
+
+            while (infCol.children.length > 1) infCol.removeChild(infCol.lastChild);
+            while (impCol.children.length > 1) impCol.removeChild(impCol.lastChild);
+
+            const shuffledInf = [...verbPairs].sort(() => Math.random() - 0.5);
+            const shuffledImp = [...verbPairs].sort(() => Math.random() - 0.5);
+
+            shuffledInf.forEach(pair => {
+                const tile = createTile(pair.inf, pair.imp, 'inf');
+                infCol.appendChild(tile);
+            });
+
+            shuffledImp.forEach(pair => {
+                const tile = createTile(pair.imp, pair.imp, 'imp');
+                impCol.appendChild(tile);
+            });
+        }
+
+        function createTile(text, matchId, type) {
+            const tile = document.createElement('div');
+            tile.className = 'verb-tile';
+            tile.innerText = text;
+            tile.dataset.matchId = matchId;
+            tile.dataset.type = type;
+            tile.onclick = () => selectTile(tile);
+            return tile;
+        }
+
+        function selectTile(tile) {
+            if (isSolved || tile.classList.contains('matched')) return;
+
+            const type = tile.dataset.type;
+            if (type === 'inf') {
+                document.querySelectorAll('#inf-col .verb-tile').forEach(t => t.classList.remove('selected'));
+                selectedInf = tile;
+            } else {
+                document.querySelectorAll('#imp-col .verb-tile').forEach(t => t.classList.remove('selected'));
+                selectedImp = tile;
+            }
+            tile.classList.add('selected');
+
+            if (selectedInf && selectedImp) {
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            if (selectedInf.dataset.matchId === selectedImp.dataset.matchId) {
+                const pair = verbPairs.find(p => p.imp === selectedInf.dataset.matchId);
+                applyMatch(selectedInf, selectedImp, pair.color);
+                matchesFound++;
+                
+                selectedInf = null;
+                selectedImp = null;
+                
+                if (matchesFound === verbPairs.length) {
+                    document.getElementById('feedback').innerText = "🎉 Super! Alle Verben zugeordnet.";
+                    document.getElementById('sol-btn').disabled = true;
+                }
+            } else {
+                const t1 = selectedInf, t2 = selectedImp;
+                t1.classList.add('error'); t2.classList.add('error');
+                setTimeout(() => {
+                    t1.classList.remove('selected', 'error');
+                    t2.classList.remove('selected', 'error');
+                }, 500);
+                selectedInf = null; selectedImp = null;
+            }
+        }
+
+        function applyMatch(tile1, tile2, color) {
+            [tile1, tile2].forEach(t => {
+                t.classList.remove('selected');
+                t.classList.add('matched');
+                t.style.backgroundColor = color;
+                t.style.borderColor = color;
+            });
+        }
+
+        function showSolution() {
+            isSolved = true;
+            document.getElementById('sol-btn').disabled = true;
+            document.getElementById('feedback').innerText = "Hier sind die passenden Paare:";
+
+            verbPairs.forEach(pair => {
+                const infTile = Array.from(document.querySelectorAll('#inf-col .verb-tile'))
+                                     .find(t => t.innerText === pair.inf);
+                const impTile = Array.from(document.querySelectorAll('#imp-col .verb-tile'))
+                                     .find(t => t.innerText === pair.imp);
+                
+                applyMatch(infTile, impTile, pair.color);
+            });
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
