@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Paare finden</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --secondary-blue: #003d7a;
+            --bg-color: #f0f4f8;
+            --card-ru: #ffffff;
+            --card-de: #f9f9f9;
+            --success: #28a745;
+            --error: #dc3545;
+            --text: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary-blue);
+            text-align: center;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .instruction {
+            margin-bottom: 20px;
+            text-align: center;
+            max-width: 600px;
+        }
+
+        /* Das Spielfeld */
+        .game-board {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+            width: 100%;
+            max-width: 1000px;
+        }
+
+        /* Die Karten */
+        .card {
+            background-color: var(--card-ru);
+            border: 2px solid var(--primary-blue);
+            border-radius: 10px;
+            padding: 15px;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            cursor: pointer;
+            font-size: 0.95rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            user-select: none;
+            touch-action: manipulation;
+        }
+
+        /* Status-Farben */
+        .card.selected {
+            background-color: var(--primary-blue);
+            color: white;
+            transform: translateY(-5px);
+            box-shadow: 0 8px 12px rgba(0,0,0,0.15);
+        }
+
+        .card.matched {
+            background-color: var(--success);
+            border-color: var(--success);
+            color: white;
+            cursor: default;
+            opacity: 0.7;
+        }
+
+        .card.error {
+            background-color: var(--error);
+            border-color: var(--error);
+            color: white;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            75% { transform: translateX(8px); }
+        }
+
+        /* Steuerung */
+        .controls {
+            margin-top: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .feedback {
+            font-size: 1.2rem;
+            font-weight: bold;
+            height: 1.5rem;
+            color: var(--primary-blue);
+        }
+
+        .btn-restart {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 30px;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: background 0.2s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .btn-restart:hover {
+            background-color: var(--secondary-blue);
+        }
+
+        /* Responsive Anpassung für sehr kleine Bildschirme */
+        @media (max-width: 480px) {
+            .game-board {
+                grid-template-columns: repeat(2, 1fr);
+                gap: 8px;
+            }
+            .card {
+                padding: 10px;
+                font-size: 0.85rem;
+                min-height: 70px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Найди пару (Finde das Paar)</h1>
+    <p class="instruction">Wähle eine russische Phrase und die passende deutsche Übersetzung aus.</p>
+
+    <div class="game-board" id="gameBoard">
+        <!-- Karten werden per JS generiert -->
+    </div>
+
+    <div class="controls">
+        <div class="feedback" id="feedback"></div>
+        <button class="btn-restart" onclick="startGame()">Neustart</button>
+    </div>
+
+    <script>
+        const data = [
+            { ru: "Извините, я не могу найти свое место", de: "Entschuldigen Sie, ich kann meinen Platz nicht finden" },
+            { ru: "Покажите, пожалуйста, ваш посадочный талон", de: "Zeigen Sie mir bitte Ihre Bordkarte" },
+            { ru: "Пожалуйста, пристегните ремни", de: "Bitte schnallen Sie sich an" },
+            { ru: "Поднимите столик и спинку кресла", de: "Klappen Sie den Tisch hoch und stellen Sie die Lehne senkrecht" },
+            { ru: "Откройте шторку иллюминатора", de: "Öffnen Sie die Fensterblende" },
+            { ru: "Курица или рыба?", de: "Hähnchen oder Fisch?" },
+            { ru: "Могу я попросить стакан воды?", de: "Darf ich um ein Glas Wasser bitten?" },
+            { ru: "Не вставайте до полной остановки самолета", de: "Stehen Sie nicht auf, bis das Flugzeug vollständig steht" }
+        ];
+
+        let firstCard = null;
+        let secondCard = null;
+        let lockBoard = false;
+        let matchesFound = 0;
+
+        function startGame() {
+            const board = document.getElementById('gameBoard');
+            const feedback = document.getElementById('feedback');
+            board.innerHTML = '';
+            feedback.innerText = '';
+            matchesFound = 0;
+            firstCard = null;
+            secondCard = null;
+            lockBoard = false;
+
+            // Karten-Objekte erstellen
+            let cards = [];
+            data.forEach((pair, index) => {
+                cards.push({ text: pair.ru, type: 'ru', pairIndex: index });
+                cards.push({ text: pair.de, type: 'de', pairIndex: index });
+            });
+
+            // Mischen
+            cards.sort(() => Math.random() - 0.5);
+
+            // Karten ins DOM einfügen
+            cards.forEach(cardData => {
+                const cardElement = document.createElement('div');
+                cardElement.classList.add('card');
+                cardElement.dataset.pairIndex = cardData.pairIndex;
+                cardElement.dataset.type = cardData.type;
+                cardElement.innerText = cardData.text;
+                cardElement.addEventListener('click', () => handleCardClick(cardElement));
+                board.appendChild(cardElement);
+            });
+        }
+
+        function handleCardClick(card) {
+            if (lockBoard || card.classList.contains('matched') || card === firstCard) return;
+
+            card.classList.add('selected');
+
+            if (!firstCard) {
+                firstCard = card;
+            } else {
+                secondCard = card;
+                checkMatch();
+            }
+        }
+
+        function checkMatch() {
+            // Prüfen, ob die Typen unterschiedlich sind (einer RU, einer DE) UND der Index gleich ist
+            const isMatch = firstCard.dataset.pairIndex === secondCard.dataset.pairIndex && 
+                            firstCard.dataset.type !== secondCard.dataset.type;
+
+            if (isMatch) {
+                disableCards();
+            } else {
+                unselectCards();
+            }
+        }
+
+        function disableCards() {
+            firstCard.classList.remove('selected');
+            secondCard.classList.remove('selected');
+            firstCard.classList.add('matched');
+            secondCard.classList.add('matched');
+
+            matchesFound++;
+            resetTurn();
+
+            if (matchesFound === data.length) {
+                document.getElementById('feedback').innerText = "🎉 Hervorragend! Alle Paare gefunden.";
+            }
+        }
+
+        function unselectCards() {
+            lockBoard = true;
+            firstCard.classList.add('error');
+            secondCard.classList.add('error');
+
+            setTimeout(() => {
+                firstCard.classList.remove('selected', 'error');
+                secondCard.classList.remove('selected', 'error');
+                resetTurn();
+            }, 1000);
+        }
+
+        function resetTurn() {
+            firstCard = null;
+            secondCard = null;
+            lockBoard = false;
+        }
+
+        // Initialer Start
+        window.onload = startGame;
+    </script>
+</body>
+</html>
