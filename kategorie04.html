@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Kategorien sortieren</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --safety-orange: #ff8c00;
+            --food-green: #2ecc71;
+            --bg-color: #f0f2f5;
+            --card-white: #ffffff;
+            --error-red: #e74c3c;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 {
+            color: var(--primary-blue);
+            text-align: center;
+            margin-bottom: 10px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Fortschrittsanzeige */
+        .progress-bar {
+            width: 100%;
+            height: 10px;
+            background-color: #ddd;
+            border-radius: 5px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            width: 0%;
+            height: 100%;
+            background-color: var(--primary-blue);
+            transition: width 0.3s ease;
+        }
+
+        /* Wort-Karte */
+        .card-area {
+            height: 150px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            perspective: 1000px;
+        }
+
+        .word-card {
+            background: var(--card-white);
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            font-size: 1.5rem;
+            font-weight: bold;
+            text-align: center;
+            width: 80%;
+            border: 3px solid var(--primary-blue);
+            transition: transform 0.3s ease, background-color 0.3s ease;
+        }
+
+        /* Kategorien-Buttons */
+        .categories {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .cat-btn {
+            padding: 20px;
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .cat-btn:active { transform: scale(0.95); }
+
+        .btn-safety { background-color: var(--safety-orange); }
+        .btn-food { background-color: var(--food-green); }
+
+        /* Animationen */
+        .shake { animation: shakeAnim 0.4s ease-in-out; }
+        @keyframes shakeAnim {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-15px); }
+            75% { transform: translateX(15px); }
+        }
+
+        .flash-correct { background-color: #d4edda !important; }
+        .flash-wrong { background-color: #f8d7da !important; }
+
+        /* Feedback & Score */
+        #feedback {
+            text-align: center;
+            font-weight: bold;
+            height: 1.5rem;
+            font-size: 1.2rem;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .btn-restart {
+            padding: 10px 25px;
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            display: none; /* Erst am Ende anzeigen */
+        }
+
+        /* Mobile Anpassungen */
+        @media (max-width: 480px) {
+            .word-card { font-size: 1.2rem; padding: 20px; }
+            .cat-btn { font-size: 0.9rem; padding: 15px; }
+            .categories { grid-template-columns: 1fr; } /* Untereinander auf kleinen Handys */
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Kategorien sortieren</h1>
+    
+    <div class="container">
+        <div class="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+
+        <div id="feedback"></div>
+
+        <div class="card-area">
+            <div id="word-display" class="word-card">Wort laden...</div>
+        </div>
+
+        <div class="categories">
+            <button class="cat-btn btn-safety" onclick="checkCategory('safety')">
+                <span>⚠️ Безопасность</span>
+                <small>(Sicherheit)</small>
+            </button>
+            <button class="cat-btn btn-food" onclick="checkCategory('food')">
+                <span>🍴 Еда и напитки</span>
+                <small>(Essen & Trinken)</small>
+            </button>
+        </div>
+
+        <div class="controls">
+            <button id="restart-btn" class="btn-restart" onclick="startGame()">Neustart</button>
+        </div>
+    </div>
+
+    <script>
+        const items = [
+            { word: "пристегните ремни", cat: "safety" },
+            { word: "минеральная вода", cat: "food" },
+            { word: "поднимите столик", cat: "safety" },
+            { word: "курица или рыба?", cat: "food" },
+            { word: "авиарежим", cat: "safety" },
+            { word: "черный чай", cat: "food" },
+            { word: "спинка кресла", cat: "safety" },
+            { word: "яблочный сок", cat: "food" },
+            { word: "шторка иллюминатора", cat: "safety" },
+            { word: "кофе без сахара", cat: "food" },
+            { word: "багажная полка", cat: "safety" },
+            { word: "сладкое или соленое?", cat: "food" }
+        ];
+
+        let currentIndex = 0;
+        let shuffledItems = [];
+
+        function startGame() {
+            shuffledItems = [...items].sort(() => Math.random() - 0.5);
+            currentIndex = 0;
+            document.getElementById('restart-btn').style.display = 'none';
+            document.querySelector('.categories').style.pointerEvents = 'auto';
+            document.querySelector('.categories').style.opacity = '1';
+            updateUI();
+        }
+
+        function updateUI() {
+            if (currentIndex < shuffledItems.length) {
+                const wordBox = document.getElementById('word-display');
+                wordBox.innerText = shuffledItems[currentIndex].word;
+                wordBox.classList.remove('flash-correct', 'flash-wrong', 'shake');
+                
+                const progress = (currentIndex / shuffledItems.length) * 100;
+                document.getElementById('progress-fill').style.width = progress + '%';
+                document.getElementById('feedback').innerText = "";
+            } else {
+                finishGame();
+            }
+        }
+
+        function checkCategory(selectedCat) {
+            const correctCat = shuffledItems[currentIndex].cat;
+            const wordBox = document.getElementById('word-display');
+            const feedback = document.getElementById('feedback');
+
+            if (selectedCat === correctCat) {
+                wordBox.classList.add('flash-correct');
+                feedback.innerText = "Правильно! (Richtig!)";
+                feedback.style.color = "var(--food-green)";
+                
+                setTimeout(() => {
+                    currentIndex++;
+                    updateUI();
+                }, 800);
+            } else {
+                wordBox.classList.add('shake', 'flash-wrong');
+                feedback.innerText = "Попробуйте еще раз! (Versuch es nochmal!)";
+                feedback.style.color = "var(--error-red)";
+                
+                setTimeout(() => {
+                    wordBox.classList.remove('shake', 'flash-wrong');
+                }, 500);
+            }
+        }
+
+        function finishGame() {
+            document.getElementById('word-display').innerText = "🎉 Fertig!";
+            document.getElementById('progress-fill').style.width = '100%';
+            document.getElementById('feedback').innerText = "Gut gemacht!";
+            document.getElementById('restart-btn').style.display = 'block';
+            document.querySelector('.categories').style.pointerEvents = 'none';
+            document.querySelector('.categories').style.opacity = '0.5';
+        }
+
+        // Initialer Start
+        window.onload = startGame;
+    </script>
+</body>
+</html>
