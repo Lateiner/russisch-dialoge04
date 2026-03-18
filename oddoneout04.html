@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: 12 Kuckuckseier</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --bg-color: #f0f4f8;
+            --card-white: #ffffff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --text-main: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-card {
+            background: var(--card-white);
+            width: 100%;
+            max-width: 650px;
+            padding: 30px;
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 {
+            color: var(--primary-blue);
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 25px;
+            font-size: 1rem;
+        }
+
+        /* Fortschrittsbalken */
+        .progress-container {
+            width: 100%;
+            height: 10px;
+            background: #eee;
+            border-radius: 5px;
+            margin-bottom: 30px;
+            overflow: hidden;
+            border: 1px solid #ddd;
+        }
+
+        #progress-fill {
+            height: 100%;
+            background: var(--primary-blue);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .counter {
+            font-size: 0.9rem;
+            margin-bottom: 10px;
+            color: var(--primary-blue);
+            font-weight: bold;
+        }
+
+        /* Antwort-Optionen */
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .option-btn {
+            background: var(--card-white);
+            border: 2px solid #ddd;
+            padding: 18px 10px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 70px;
+            touch-action: manipulation;
+        }
+
+        .option-btn:hover {
+            border-color: var(--primary-blue);
+            background-color: #f9fbff;
+        }
+
+        /* Status-Klassen */
+        .correct {
+            background-color: var(--success-green) !important;
+            border-color: var(--success-green) !important;
+            color: white;
+        }
+
+        .wrong {
+            background-color: var(--error-red) !important;
+            border-color: var(--error-red) !important;
+            color: white;
+            animation: shake 0.4s ease;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        /* Feedback Bereich */
+        #feedback {
+            height: 80px;
+            margin-top: 10px;
+            font-weight: bold;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .explanation {
+            font-weight: normal;
+            font-size: 0.95rem;
+            color: #444;
+            margin-top: 5px;
+            line-height: 1.3;
+        }
+
+        /* Buttons Steuerung */
+        .btn-restart {
+            margin-top: 20px;
+            padding: 12px 30px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            display: none; /* Wird am Ende eingeblendet */
+            font-size: 1rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: background 0.3s;
+        }
+
+        .btn-restart:hover {
+            background: #003d7a;
+        }
+
+        /* Responsive */
+        @media (max-width: 500px) {
+            .options-grid {
+                grid-template-columns: 1fr;
+            }
+            .game-card {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="game-card">
+        <h1>Что здесь лишнее?</h1>
+        <p class="subtitle">Welches Wort passt <b>nicht</b> in die Reihe?</p>
+
+        <div class="counter" id="round-counter">Runde 1 von 12</div>
+        <div class="progress-container">
+            <div id="progress-fill"></div>
+        </div>
+
+        <div class="options-grid" id="options-container">
+            <!-- Dynamischer Inhalt -->
+        </div>
+
+        <div id="feedback"></div>
+
+        <button class="btn-restart" id="restart-btn" onclick="initGame()">Spiel neustarten</button>
+    </div>
+
+    <script>
+        const quizData = [
+            { options: ["чай", "сок", "вода", "ремень"], correct: "ремень", reason: "Getränke vs. Sicherheitsgurt." },
+            { options: ["столик", "рыба", "курица", "кофе"], correct: "столик", reason: "Essen & Trinken vs. Flugzeug-Möbel." },
+            { options: ["билет", "багаж", "таможня", "подлокотник"], correct: "подлокотник", reason: "Reisebegriffe vs. Sitzteil (Armlehne)." },
+            { options: ["окно", "шторка", "иллюминатор", "сахар"], correct: "сахар", reason: "Alles rund ums Fenster vs. Lebensmittel." },
+            { options: ["пристегните", "поднимите", "опустите", "стакан"], correct: "стакан", reason: "Befehle (Verben) vs. ein Gegenstand (Substantiv)." },
+            { options: ["пальто", "куртка", "шуба", "полка"], correct: "полка", reason: "Kleidungsstücke vs. Ablagefach." },
+            { options: ["телефон", "ноутбук", "планшет", "одеяло"], correct: "одеяло", reason: "Elektronische Geräte vs. Decke." },
+            { options: ["взлёт", "посадка", "полёт", "паспорт"], correct: "паспорт", reason: "Flugphasen vs. Ausweisdokument." },
+            { options: ["бортпроводник", "пилот", "капитан", "табло"], correct: "табло", reason: "Besatzungsmitglieder vs. Anzeige." },
+            { options: ["молоко", "лимон", "сахар", "наушники"], correct: "наушники", reason: "Zusätze für Getränke vs. Kopfhörer." },
+            { options: ["сумка", "чемодан", "рюкзак", "кресло"], correct: "кресло", reason: "Gepäckstücke vs. Sessel." },
+            { options: ["чёрный", "зелёный", "травяной", "солёный"], correct: "солёный", reason: "Teesorten vs. Geschmack (salzig)." }
+        ];
+
+        let currentRound = 0;
+        let canClick = true;
+        let shuffledQuiz = [];
+
+        function initGame() {
+            // Fragen mischen
+            shuffledQuiz = [...quizData].sort(() => Math.random() - 0.5);
+            currentRound = 0;
+            canClick = true;
+            document.getElementById('restart-btn').style.display = 'none';
+            document.getElementById('feedback').innerHTML = '';
+            loadRound();
+        }
+
+        function loadRound() {
+            canClick = true;
+            const container = document.getElementById('options-container');
+            const feedback = document.getElementById('feedback');
+            const progress = document.getElementById('progress-fill');
+            const counter = document.getElementById('round-counter');
+            
+            feedback.innerHTML = '';
+            container.innerHTML = '';
+
+            if (currentRound >= shuffledQuiz.length) {
+                showFinalScore();
+                return;
+            }
+
+            counter.innerText = `Runde ${currentRound + 1} von ${shuffledQuiz.length}`;
+            const progressPercent = (currentRound / shuffledQuiz.length) * 100;
+            progress.style.width = progressPercent + '%';
+
+            const currentData = shuffledQuiz[currentRound];
+            
+            // Antwortmöglichkeiten innerhalb der Frage mischen
+            const shuffledOptions = [...currentData.options].sort(() => Math.random() - 0.5);
+
+            shuffledOptions.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.className = 'option-btn';
+                btn.innerText = opt;
+                btn.onclick = () => handleChoice(opt, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        function handleChoice(selected, btn) {
+            if (!canClick) return;
+            
+            const currentData = shuffledQuiz[currentRound];
+            const feedback = document.getElementById('feedback');
+
+            if (selected === currentData.correct) {
+                canClick = false;
+                btn.classList.add('correct');
+                feedback.innerHTML = `<span style="color:var(--success-green)">Richtig! ✅</span>
+                                      <div class="explanation">${currentData.reason}</div>`;
+                
+                setTimeout(() => {
+                    currentRound++;
+                    loadRound();
+                }, 2000);
+            } else {
+                btn.classList.add('wrong');
+                feedback.innerHTML = `<span style="color:var(--error-red)">Das passt in die Reihe. Such das Kuckucksei!</span>`;
+                setTimeout(() => {
+                    btn.classList.remove('wrong');
+                    feedback.innerHTML = '';
+                }, 800);
+            }
+        }
+
+        function showFinalScore() {
+            document.getElementById('progress-fill').style.width = '100%';
+            document.getElementById('round-counter').innerText = "Geschafft!";
+            document.getElementById('options-container').innerHTML = '';
+            document.getElementById('feedback').innerHTML = '🎉 Super! Du hast alle 12 Kuckuckseier gefunden!';
+            document.getElementById('restart-btn').style.display = 'inline-block';
+        }
+
+        window.onload = initGame;
+    </script>
+</body>
+</html>
