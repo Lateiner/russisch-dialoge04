@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Dialog ordnen</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --bg-color: #f0f4f8;
+            --card-white: #ffffff;
+            --success-green: #28a745;
+            --error-red: #dc3545;
+            --text-main: #333;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            background: var(--card-white);
+            padding: 25px;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        h1 { color: var(--primary-blue); margin-bottom: 5px; font-size: 1.5rem; }
+        .subtitle { color: #666; margin-bottom: 25px; font-size: 0.95rem; }
+
+        /* Dialog Liste */
+        #dialog-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-bottom: 25px;
+            padding: 0;
+            list-style: none;
+        }
+
+        .sentence-card {
+            display: flex;
+            align-items: center;
+            background: #fff;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 10px 15px;
+            transition: all 0.3s ease;
+            text-align: left;
+            position: relative;
+        }
+
+        .sentence-card.correct { border-color: var(--success-green); background-color: #f0fff4; }
+        .sentence-card.wrong { border-color: var(--error-red); background-color: #fff5f5; }
+
+        .sentence-text { flex-grow: 1; font-size: 1rem; padding-right: 10px; }
+
+        /* Steuerungspfeile */
+        .order-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .btn-order {
+            background: var(--bg-color);
+            border: 1px solid #cbd5e0;
+            border-radius: 5px;
+            cursor: pointer;
+            padding: 5px 10px;
+            font-weight: bold;
+            color: var(--primary-blue);
+            transition: 0.2s;
+        }
+
+        .btn-order:hover { background: var(--primary-blue); color: white; }
+
+        /* Aktions-Buttons */
+        .actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn-main {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            transition: 0.3s;
+            font-size: 0.95rem;
+        }
+
+        .btn-check { background-color: var(--primary-blue); }
+        .btn-solution { background-color: #ed8936; }
+        .btn-reset { background-color: #718096; }
+
+        .feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            min-height: 1.5em;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .container { padding: 15px; }
+            .sentence-text { font-size: 0.9rem; }
+            .btn-main { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>Диалог в самолёте</h1>
+        <p class="subtitle">Bringe den Dialog in die richtige logische Reihenfolge (von oben nach unten).</p>
+
+        <ul id="dialog-list">
+            <!-- Sätze werden per JS geladen -->
+        </ul>
+
+        <div id="feedback" class="feedback"></div>
+
+        <div class="actions">
+            <button class="btn-main btn-check" onclick="checkOrder()">Prüfen</button>
+            <button class="btn-main btn-solution" onclick="showSolution()">Lösung</button>
+            <button class="btn-main btn-reset" onclick="initGame()">Mischen / Neustart</button>
+        </div>
+    </div>
+
+    <script>
+        const originalDialogue = [
+            "— Извините, я не могу найти свое место.",
+            "— Покажите, пожалуйста, ваш посадочный талон.",
+            "— Вот, пожалуйста.",
+            "— Ваше место 21Б. Пожалуйста, уберите вашу сумку на полку.",
+            "— Хорошо. Скажите, а когда принесут напитки?",
+            "— Скоро. Что вы желаете: чай или кофе?",
+            "— Мне, пожалуйста, кофе без сахара.",
+            "— Самолет готовится к посадke. Пожалуйста, не вставайте."
+        ];
+
+        let currentOrder = [];
+
+        function initGame() {
+            document.getElementById('feedback').innerText = "";
+            // Kopie erstellen und mischen
+            currentOrder = [...originalDialogue].sort(() => Math.random() - 0.5);
+            renderList();
+        }
+
+        function renderList() {
+            const list = document.getElementById('dialog-list');
+            list.innerHTML = '';
+
+            currentOrder.forEach((sentence, index) => {
+                const li = document.createElement('li');
+                li.className = 'sentence-card';
+                li.innerHTML = `
+                    <div class="sentence-text">${sentence}</div>
+                    <div class="order-controls">
+                        <button class="btn-order" onclick="moveUp(${index})">↑</button>
+                        <button class="btn-order" onclick="moveDown(${index})">↓</button>
+                    </div>
+                `;
+                list.appendChild(li);
+            });
+        }
+
+        function moveUp(index) {
+            if (index > 0) {
+                const temp = currentOrder[index];
+                currentOrder[index] = currentOrder[index - 1];
+                currentOrder[index - 1] = temp;
+                renderList();
+            }
+        }
+
+        function moveDown(index) {
+            if (index < currentOrder.length - 1) {
+                const temp = currentOrder[index];
+                currentOrder[index] = currentOrder[index + 1];
+                currentOrder[index + 1] = temp;
+                renderList();
+            }
+        }
+
+        function checkOrder() {
+            const cards = document.querySelectorAll('.sentence-card');
+            let allCorrect = true;
+
+            currentOrder.forEach((sentence, index) => {
+                if (sentence === originalDialogue[index]) {
+                    cards[index].classList.add('correct');
+                    cards[index].classList.remove('wrong');
+                } else {
+                    cards[index].classList.add('wrong');
+                    cards[index].classList.remove('correct');
+                    allCorrect = false;
+                }
+            });
+
+            const feedback = document.getElementById('feedback');
+            if (allCorrect) {
+                feedback.innerText = "🎉 Ausgezeichnet! Die Reihenfolge ist korrekt.";
+                feedback.style.color = "var(--success-green)";
+            } else {
+                feedback.innerText = "❌ Die Reihenfolge stimmt noch nicht ganz.";
+                feedback.style.color = "var(--error-red)";
+            }
+        }
+
+        function showSolution() {
+            currentOrder = [...originalDialogue];
+            renderList();
+            checkOrder();
+            document.getElementById('feedback').innerText = "Hier ist die richtige Reihenfolge.";
+            document.getElementById('feedback').style.color = "#ed8936";
+        }
+
+        // Start
+        window.onload = initGame;
+    </script>
+</body>
+</html>
