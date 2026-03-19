@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Emoji-Übersetzer</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --success: #28a745;
+            --error: #dc3545;
+            --text-main: #2d3748;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .quiz-container {
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            padding: 30px;
+            text-align: center;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin-bottom: 30px;
+            overflow: hidden;
+        }
+
+        #progress-fill {
+            height: 100%;
+            background: var(--primary-blue);
+            width: 0%;
+            transition: width 0.4s ease;
+        }
+
+        .russian-sentence {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: var(--primary-blue);
+            margin-bottom: 30px;
+            min-height: 3.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.3;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 15px;
+        }
+
+        .emoji-option {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 15px;
+            font-size: 2rem;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            touch-action: manipulation;
+        }
+
+        .emoji-option:hover:not(:disabled) {
+            border-color: var(--primary-blue);
+            background-color: #f8fbff;
+        }
+
+        .emoji-option:disabled {
+            cursor: default;
+        }
+
+        /* Status Farben */
+        .emoji-option.correct {
+            background-color: #d4edda;
+            border-color: var(--success);
+        }
+
+        .emoji-option.wrong {
+            background-color: #f8d7da;
+            border-color: var(--error);
+        }
+
+        #feedback {
+            margin-top: 20px;
+            font-weight: bold;
+            height: 1.5rem;
+        }
+
+        .btn-next {
+            margin-top: 20px;
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            display: none;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .quiz-container { padding: 20px; }
+            .russian-sentence { font-size: 1.2rem; }
+            .emoji-option { font-size: 1.6rem; padding: 12px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="quiz-container">
+        <div class="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+
+        <div class="russian-sentence" id="sentence-display">Lade...</div>
+
+        <div class="options-grid" id="options-container">
+            <!-- Buttons werden per JS geladen -->
+        </div>
+
+        <div id="feedback"></div>
+        <button class="btn-next" id="next-btn" onclick="nextQuestion()">Nächster Satz</button>
+    </div>
+
+    <script>
+        const quizData = [
+            {
+                sentence: "Извините, я не могу найти свое место.",
+                options: ["👤❓💺", "🛂🎫✅", "🧳⬆️📁"],
+                correct: 0
+            },
+            {
+                sentence: "Пожалуйста, уберите вашу сумку на багажную полку.",
+                options: ["👜⬇️💺", "👜⬆️📁", "👜🚫✈️"],
+                correct: 1
+            },
+            {
+                sentence: "Пристегните ремни.",
+                options: ["🍽️⬇️✅", "📵📵📵", "🔒🎗️✅"],
+                correct: 2
+            },
+            {
+                sentence: "Поднимите столик.",
+                options: ["⬆️🍽️", "⬇️🍽️", "🚫🍽️"],
+                correct: 0
+            },
+            {
+                sentence: "Откройте шторку иллюминатора.",
+                options: ["👐🪟☀️", "🔒🪟🌙", "💺📐⬆️"],
+                correct: 0
+            },
+            {
+                sentence: "Отключите мобильные телефоны.",
+                options: ["📱🔊🎶", "📵📵📵", "📱🔋⚡"],
+                correct: 1
+            },
+            {
+                sentence: "Чай или кофе?",
+                options: ["🍗❓🐟", "☕️❓🍵", "🍷❓🍺"],
+                correct: 1
+            },
+            {
+                sentence: "Курица или рыба?",
+                options: ["🍗❓🐟", "🥩❓🍝", "🍎❓🍌"],
+                correct: 0
+            },
+            {
+                sentence: "Кофе без сахара.",
+                options: ["☕️➕🍬", "☕️🚫🍬", "🍵🚫🍬"],
+                correct: 1
+            },
+            {
+                sentence: "Самолет готовится к посадке.",
+                options: ["✈️⬆️☁️", "✈️↔️💨", "✈️⬇️🏁"],
+                correct: 2
+            }
+        ];
+
+        let currentIdx = 0;
+        let answered = false;
+
+        function loadQuestion() {
+            answered = false;
+            document.getElementById('next-btn').style.display = 'none';
+            document.getElementById('feedback').innerText = '';
+            
+            const data = quizData[currentIdx];
+            document.getElementById('sentence-display').innerText = data.sentence;
+            
+            // Fortschritt
+            const progress = (currentIdx / quizData.length) * 100;
+            document.getElementById('progress-fill').style.width = progress + '%';
+
+            const optionsContainer = document.getElementById('options-container');
+            optionsContainer.innerHTML = '';
+
+            // Optionen mischen für mehr Schwierigkeit (optional)
+            data.options.forEach((opt, index) => {
+                const btn = document.createElement('button');
+                btn.className = 'emoji-option';
+                btn.innerText = opt;
+                btn.onclick = () => checkAnswer(index, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(selectedIndex, clickedBtn) {
+            if (answered) return;
+            answered = true;
+
+            const correctIndex = quizData[currentIdx].correct;
+            const allBtns = document.querySelectorAll('.emoji-option');
+
+            if (selectedIndex === correctIndex) {
+                clickedBtn.classList.add('correct');
+                document.getElementById('feedback').innerText = "Правильно! ✅";
+                document.getElementById('feedback').style.color = "var(--success)";
+            } else {
+                clickedBtn.classList.add('wrong');
+                allBtns[correctIndex].classList.add('correct');
+                document.getElementById('feedback').innerText = "Неправильно! ❌";
+                document.getElementById('feedback').style.color = "var(--error)";
+            }
+
+            allBtns.forEach(btn => btn.disabled = true);
+            document.getElementById('next-btn').style.display = 'inline-block';
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            if (currentIdx < quizData.length) {
+                loadQuestion();
+            } else {
+                showResults();
+            }
+        }
+
+        function showResults() {
+            document.getElementById('progress-fill').style.width = '100%';
+            document.getElementById('options-container').innerHTML = '';
+            document.getElementById('sentence-display').innerText = "🎉 Übung beendet!";
+            document.getElementById('feedback').innerText = "Gut gemacht!";
+            document.getElementById('next-btn').innerText = "Neustart";
+            document.getElementById('next-btn').onclick = () => location.reload();
+            document.getElementById('next-btn').style.display = 'inline-block';
+        }
+
+        // Quiz starten
+        window.onload = loadQuestion;
+    </script>
+</body>
+</html>
