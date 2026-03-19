@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interaktives Foto: Russisch im Flugzeug</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --hotspot-bg: rgba(0, 85, 164, 0.85);
+            --bg-color: #f0f4f8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary-blue); text-align: center; margin-bottom: 5px; font-size: 1.6rem; }
+        .subtitle { text-align: center; color: #555; margin-bottom: 15px; font-size: 0.95rem; }
+
+        /* Bild-Container */
+        .interactive-container {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 15px 45px rgba(0,0,0,0.3);
+            background-color: #000;
+        }
+
+        .main-img {
+            width: 100%;
+            height: auto;
+            display: block;
+        }
+
+        /* Hotspot Styling */
+        .hotspot {
+            position: absolute;
+            width: 34px;
+            height: 34px;
+            background-color: var(--hotspot-bg);
+            border: 2px solid white;
+            border-radius: 50%;
+            cursor: pointer;
+            transform: translate(-50%, -50%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 0 15px rgba(0,0,0,0.5);
+            animation: pulse 2.5s infinite;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        @keyframes pulse {
+            0% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.7); }
+            70% { transform: translate(-50%, -50%) scale(1.2); box-shadow: 0 0 0 12px rgba(255, 255, 255, 0); }
+            100% { transform: translate(-50%, -50%) scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
+        }
+
+        .hotspot:hover {
+            background-color: #00b4ff;
+            transform: translate(-50%, -50%) scale(1.5);
+            animation: none;
+        }
+
+        .hotspot span { color: white; font-weight: bold; font-size: 18px; }
+
+        /* Info Box */
+        .info-box {
+            margin-top: 20px;
+            width: 95%;
+            max-width: 500px;
+            background: white;
+            padding: 20px;
+            border-radius: 20px;
+            text-align: center;
+            min-height: 180px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            border-bottom: 8px solid var(--primary-blue);
+        }
+
+        .emoji-display { font-size: 3.8rem; margin-bottom: 10px; }
+        #vocab-ru { font-size: 1.8rem; font-weight: bold; color: var(--primary-blue); margin: 0; }
+        #vocab-de { font-size: 1.1rem; color: #666; margin: 5px 0 15px 0; }
+
+        .audio-btn {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 12px 28px;
+            border-radius: 30px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 15px rgba(0,85,164,0.3);
+        }
+
+        @media (max-width: 600px) {
+            .hotspot { width: 30px; height: 30px; }
+            #vocab-ru { font-size: 1.3rem; }
+            .emoji-display { font-size: 3rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>В самолёте (Im Flugzeug)</h1>
+    <p class="subtitle">Klicke auf die Symbole im Foto, um die russischen Begriffe zu lernen.</p>
+
+    <div class="interactive-container">
+        <!-- Das von dir bereitgestellte Foto (muss flugzeug.jpg heißen) -->
+        <img src="flugzeug.jpg" alt="Passagierin im Flugzeug" class="main-img">
+
+        <!-- 10 Hotspots, präzise auf dein Foto abgestimmt -->
+        <div class="hotspot" style="top: 5%; left: 45%;" onclick="showInfo('багажная полка', 'Gepäckfach', '🧳')"><span>?</span></div>
+        <div class="hotspot" style="top: 50%; left: 58%;" onclick="showInfo('иллюминатор', 'Fenster', '🪟')"><span>?</span></div>
+        <div class="hotspot" style="top: 85%; left: 55%;" onclick="showInfo('кресло', 'Sitz', '💺')"><span>?</span></div>
+        <div class="hotspot" style="top: 60%; left: 15%;" onclick="showInfo('столик', 'Klapptisch', '🍽️')"><span>?</span></div>
+        <div class="hotspot" style="top: 88%; left: 58%;" onclick="showInfo('подлокотник', 'Armlehne', '🛋️')"><span>?</span></div>
+        <div class="hotspot" style="top: 97%; left: 56%;" onclick="showInfo('ремень безопасности', 'Sicherheitsgurt', '🔒')"><span>?</span></div>
+        <div class="hotspot" style="top: 45%; left: 75%;" onclick="showInfo('спинка кресла', 'Rückenlehne', '📐')"><span>?</span></div>
+        <div class="hotspot" style="top: 83%; left: 50%;" onclick="showInfo('посадочный талон', 'Bordkarte', '🎫')"><span>?</span></div>
+        <div class="hotspot" style="top: 43%; left: 72%;" onclick="showInfo('наушники', 'Kopfhörer', '🎧')"><span>?</span></div>
+        <div class="hotspot" style="top: 64%; left: 55%;" onclick="showInfo('телефон', 'Handy', '📱')"><span>?</span></div>
+    </div>
+
+    <div class="info-box" id="infoBox">
+        <div id="instruction-text">Wähle einen Punkt im Bild aus.</div>
+        <div id="content-area" style="display: none;">
+            <div class="emoji-display" id="emoji-icon"></div>
+            <p id="vocab-ru"></p>
+            <p id="vocab-de"></p>
+            <button class="audio-btn" onclick="playAudio()">
+                <span>🔊</span> Hören (Männerstimme)
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let currentWord = "";
+
+        function showInfo(ru, de, emoji) {
+            currentWord = ru;
+            document.getElementById('instruction-text').style.display = 'none';
+            document.getElementById('content-area').style.display = 'block';
+            
+            document.getElementById('emoji-icon').innerText = emoji;
+            document.getElementById('vocab-ru').innerText = ru;
+            document.getElementById('vocab-de').innerText = de;
+            
+            playAudio();
+        }
+
+        function playAudio() {
+            if (!currentWord) return;
+
+            window.speechSynthesis.cancel(); 
+
+            const utterance = new SpeechSynthesisUtterance(currentWord);
+            utterance.lang = 'ru-RU';
+            utterance.rate = 0.8; 
+
+            const voices = window.speechSynthesis.getVoices();
+            
+            // Suche nach männlichen Stimmenprofilen
+            const maleNames = ["Pavel", "Maxim", "Yuri", "Aleksandr", "Stefan", "Ivan", "Microsoft Stefan"];
+            
+            let selectedVoice = voices.find(voice => 
+                voice.lang.includes('ru') && maleNames.some(name => voice.name.includes(name))
+            );
+
+            if (!selectedVoice) {
+                selectedVoice = voices.find(voice => voice.lang.includes('ru'));
+            }
+
+            if (selectedVoice) {
+                utterance.voice = selectedVoice;
+            }
+
+            window.speechSynthesis.speak(utterance);
+        }
+
+        window.speechSynthesis.onvoiceschanged = () => {
+            window.speechSynthesis.getVoices();
+        };
+    </script>
+</body>
+</html>
