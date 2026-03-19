@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch-Übung: Dialog-Szenario im Flugzeug</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --attendant-bg: #e1effe;
+            --passenger-bg: #ffffff;
+            --btn-hover: #f0f7ff;
+            --success-green: #28a745;
+            --bg-color: #f0f4f8;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .game-container {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        .header {
+            background-color: var(--primary-blue);
+            color: white;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .header h1 { margin: 0; font-size: 1.4rem; }
+        .header p { margin: 5px 0 0; font-size: 0.9rem; opacity: 0.9; }
+
+        /* Chat-Verlauf */
+        .chat-display {
+            padding: 20px;
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 250px;
+            background-color: #f9f9f9;
+        }
+
+        .bubble {
+            max-width: 85%;
+            padding: 12px 16px;
+            border-radius: 15px;
+            font-size: 1.05rem;
+            line-height: 1.4;
+            position: relative;
+            animation: fadeIn 0.4s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .attendant-bubble {
+            align-self: flex-start;
+            background-color: var(--attendant-bg);
+            color: #1e429f;
+            border-bottom-left-radius: 2px;
+        }
+
+        .attendant-bubble::before {
+            content: "🧑‍✈️ Бортпроводник:";
+            display: block;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+        }
+
+        .passenger-bubble {
+            align-self: flex-end;
+            background-color: var(--primary-blue);
+            color: white;
+            border-bottom-right-radius: 2px;
+        }
+
+        .passenger-bubble::before {
+            content: "👤 Вы (Sie):";
+            display: block;
+            font-size: 0.75rem;
+            font-weight: bold;
+            margin-bottom: 4px;
+            text-transform: uppercase;
+            text-align: right;
+        }
+
+        /* Antwort-Optionen */
+        .options-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .option-btn {
+            background: white;
+            border: 2px solid var(--primary-blue);
+            color: var(--primary-blue);
+            padding: 14px 18px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 600;
+            text-align: left;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+
+        .option-btn:hover {
+            background-color: var(--btn-hover);
+        }
+
+        .option-btn .translation {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: normal;
+            margin-top: 4px;
+            color: #666;
+        }
+
+        /* Ergebnis / Neustart */
+        .result-screen {
+            display: none;
+            padding: 40px 20px;
+            text-align: center;
+        }
+
+        .result-screen h2 { color: var(--success-green); }
+
+        .btn-restart {
+            margin-top: 20px;
+            background: var(--primary-blue);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 25px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            .bubble { max-width: 95%; font-size: 0.95rem; }
+            .option-btn { padding: 12px; font-size: 0.9rem; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="game-container">
+    <div class="header">
+        <h1>Диалог: Полёт</h1>
+        <p>Reagiere richtig auf das Personal, um dein Ziel zu erreichen.</p>
+    </div>
+
+    <div class="chat-display" id="chatDisplay">
+        <!-- Chat-Verlauf wird hier generiert -->
+    </div>
+
+    <div class="options-area" id="optionsArea">
+        <!-- Antwort-Buttons erscheinen hier -->
+    </div>
+
+    <div class="result-screen" id="resultScreen">
+        <h2 id="resultTitle">🎉 Вы прилетели!</h2>
+        <p id="resultText">Hervorragend! Sie haben alle Situationen im Flugzeug gemeistert.</p>
+        <button class="btn-restart" onclick="startGame()">Nochmal fliegen</button>
+    </div>
+</div>
+
+<script>
+    const scenario = {
+        start: {
+            attendant: "Здравствуйте! Покажите, пожалуйста, ваш посадочный талон.",
+            options: [
+                { 
+                    label: "Вот, пожалуйста.", 
+                    translation: "Hier, bitte sehr.", 
+                    next: "luggage" 
+                },
+                { 
+                    label: "Извините, я не могу найти свое место.", 
+                    translation: "Entschuldigung, ich finde meinen Platz nicht.", 
+                    next: "help_seat" 
+                }
+            ]
+        },
+        help_seat: {
+            attendant: "Не волнуйтесь. Покажите талон... Ага, ваше место 21Б, посередине. Я покажу вам.",
+            options: [
+                { 
+                    label: "Спасибо большое!", 
+                    translation: "Vielen Dank!", 
+                    next: "luggage" 
+                }
+            ]
+        },
+        luggage: {
+            attendant: "Пожалуйста, уберите вашу сумку на багажную полку.",
+            options: [
+                { 
+                    label: "Хорошо, сейчас уберу.", 
+                    translation: "Gut, ich werde sie gleich wegräumen.", 
+                    next: "safety" 
+                },
+                { 
+                    label: "А можно положить сумку под сиденье?", 
+                    translation: "Darf ich die Tasche unter den Sitz legen?", 
+                    next: "luggage_seat" 
+                }
+            ]
+        },
+        luggage_seat: {
+            attendant: "Да, можно под сиденье впереди стоящего кресла.",
+            options: [
+                { 
+                    label: "Понятно, спасибо.", 
+                    translation: "Verstanden, danke.", 
+                    next: "safety" 
+                }
+            ]
+        },
+        safety: {
+            attendant: "Пожалуйста, пристегните ремни и поднимите столик.",
+            options: [
+                { 
+                    label: "Ремни пристёгнуты, столик поднят.", 
+                    translation: "Gurte sind angelegt, Tisch ist hochgeklappt.", 
+                    next: "service" 
+                }
+            ]
+        },
+        service: {
+            attendant: "Что вы желаете из напитков: чай или кофе?",
+            options: [
+                { 
+                    label: "Мне, пожалуйста, кофе без сахара.", 
+                    translation: "Für mich bitte einen Kaffee ohne Zucker.", 
+                    next: "food" 
+                },
+                { 
+                    label: "У вас есть чёрный чай с лимоном?", 
+                    translation: "Haben Sie schwarzen Tee mit Zitrone?", 
+                    next: "food" 
+                }
+            ]
+        },
+        food: {
+            attendant: "Конечно. А на обед: курица или рыба?",
+            options: [
+                { 
+                    label: "Я выберу рыбу, пожалуйста.", 
+                    translation: "Ich wähle den Fisch, bitte.", 
+                    next: "landing" 
+                },
+                { 
+                    label: "Мне курицу, пожалуйста.", 
+                    translation: "Für mich das Hähnchen, bitte.", 
+                    next: "landing" 
+                }
+            ]
+        },
+        landing: {
+            attendant: "Наш самолёт готовится к посадке. Пожалуйста, не вставайте до полной остановки.",
+            options: [
+                { 
+                    label: "Хорошо, я буду ждать.", 
+                    translation: "Gut, ich werde warten.", 
+                    next: "finish" 
+                }
+            ]
+        }
+    };
+
+    let currentStep = 'start';
+
+    function startGame() {
+        currentStep = 'start';
+        document.getElementById('chatDisplay').innerHTML = "";
+        document.getElementById('optionsArea').style.display = "flex";
+        document.getElementById('resultScreen').style.display = "none";
+        renderStep();
+    }
+
+    function renderStep() {
+        const step = scenario[currentStep];
+        
+        // Nachricht des Flugbegleiters hinzufügen
+        addBubble(step.attendant, 'attendant');
+
+        // Buttons generieren
+        const optionsArea = document.getElementById('optionsArea');
+        optionsArea.innerHTML = "";
+
+        step.options.forEach(opt => {
+            const btn = document.createElement('button');
+            btn.className = 'option-btn';
+            btn.innerHTML = `${opt.label} <span class="translation">${opt.translation}</span>`;
+            btn.onclick = () => handleChoice(opt);
+            optionsArea.appendChild(btn);
+        });
+    }
+
+    function handleChoice(option) {
+        // Spieler-Antwort in Chat anzeigen
+        addBubble(option.label, 'passenger');
+
+        // Buttons kurz deaktivieren für Realismus
+        document.getElementById('optionsArea').innerHTML = "";
+
+        setTimeout(() => {
+            if (option.next === 'finish') {
+                showEnd();
+            } else {
+                currentStep = option.next;
+                renderStep();
+            }
+        }, 1000);
+    }
+
+    function addBubble(text, side) {
+        const display = document.getElementById('chatDisplay');
+        const bubble = document.createElement('div');
+        bubble.className = `bubble ${side}-bubble`;
+        bubble.innerText = text;
+        display.appendChild(bubble);
+        
+        // Automatisch nach unten scrollen
+        display.scrollTop = display.scrollHeight;
+    }
+
+    function showEnd() {
+        document.getElementById('optionsArea').style.display = "none";
+        document.getElementById('resultScreen').style.display = "block";
+    }
+
+    // Start
+    window.onload = startGame;
+</script>
+
+</body>
+</html>
