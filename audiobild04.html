@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Russisch Hörverstehen: 10 Sätze im Flugzeug</title>
+    <style>
+        :root {
+            --primary-blue: #0055a4;
+            --bg-color: #f0f4f8;
+            --card-bg: #ffffff;
+            --success: #28a745;
+            --error: #dc3545;
+            --text-main: #2d3748;
+            --reset-grey: #718096;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            border-radius: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 25px;
+            text-align: center;
+        }
+
+        h1 { color: var(--primary-blue); font-size: 1.5rem; margin-top: 0; }
+        .instructions { color: #666; margin-bottom: 20px; font-size: 0.95rem; }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: #eee;
+            border-radius: 4px;
+            margin-bottom: 25px;
+            overflow: hidden;
+        }
+        #progress-fill {
+            height: 100%;
+            background: var(--primary-blue);
+            width: 0%;
+            transition: width 0.4s;
+        }
+
+        .audio-section { margin-bottom: 30px; }
+        .play-btn {
+            background-color: var(--primary-blue);
+            color: white;
+            border: none;
+            width: 75px;
+            height: 75px;
+            border-radius: 50%;
+            font-size: 2.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,85,164,0.3);
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            transition: transform 0.2s;
+        }
+        .play-btn:active { transform: scale(0.9); }
+        .audio-label { display: block; margin-top: 8px; font-weight: bold; color: var(--primary-blue); font-size: 0.9rem; }
+
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+        }
+        .image-card {
+            background: white;
+            border: 3px solid #e2e8f0;
+            border-radius: 15px;
+            padding: 15px;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            touch-action: manipulation;
+        }
+        .image-card .emoji { font-size: 2.5rem; }
+        .image-card .label { font-size: 0.85rem; font-weight: 600; color: #555; }
+
+        .image-card.correct { border-color: var(--success); background-color: #f0fff4; }
+        .image-card.wrong { border-color: var(--error); background-color: #fff5f5; }
+        .image-card.disabled { pointer-events: none; }
+
+        #feedback { margin-top: 20px; font-weight: bold; min-height: 1.5rem; font-size: 1.1rem; }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        #start-overlay {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: var(--primary-blue);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .btn-main {
+            background: white;
+            color: var(--primary-blue);
+            border: none;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: 20px;
+        }
+
+        .action-btn {
+            display: none;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 25px;
+            font-weight: bold;
+            cursor: pointer;
+            color: white;
+            font-size: 0.95rem;
+            transition: transform 0.2s;
+        }
+        .action-btn:active { transform: scale(0.95); }
+
+        #next-btn { background: var(--primary-blue); }
+        #reset-btn { background: var(--reset-grey); }
+
+        @media (max-width: 480px) {
+            .image-grid { grid-template-columns: 1fr; }
+            .controls { flex-direction: column-reverse; }
+            .action-btn { width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="start-overlay">
+        <h1>В самолёте</h1>
+        <p>Hörverstehen: 10 Sätze auf Russisch</p>
+        <button class="btn-main" onclick="startApp()">Übung starten</button>
+    </div>
+
+    <div class="container">
+        <h1 id="title">Слушайте и выбирайте</h1>
+        <p class="instructions">Höre den Satz und wähle das richtige Bild aus.</p>
+
+        <div class="progress-bar">
+            <div id="progress-fill"></div>
+        </div>
+
+        <div class="audio-section">
+            <button class="play-btn" onclick="playCurrentAudio()">🔊</button>
+            <span class="audio-label">Satz abspielen</span>
+        </div>
+
+        <div class="image-grid" id="image-container"></div>
+
+        <div id="feedback"></div>
+
+        <div class="controls">
+            <button id="reset-btn" class="action-btn" onclick="resetCurrentTask()">Zurücksetzen</button>
+            <button id="next-btn" class="action-btn" onclick="nextQuestion()">Nächster Satz</button>
+        </div>
+    </div>
+
+    <script>
+        const allOptions = [
+            {id:"belt", e:"🔒", l:"Anschnallgurt"},
+            {id:"table", e:"🍽️", l:"Tisch hoch"},
+            {id:"window", e:"🪟", l:"Fenster öffnen"},
+            {id:"shelf", e:"🧳", l:"Gepäckfach"},
+            {id:"phone", e:"📵", l:"Handy aus"},
+            {id:"armrest", e:"🛋️", l:"Armlehne runter"},
+            {id:"seatback", e:"📐", l:"Rückenlehne hoch"},
+            {id:"pass", e:"🎫", l:"Bordkarte"},
+            {id:"food", e:"🍗🐟", l:"Hähnchen oder Fisch"},
+            {id:"landing", e:"✈️🏁", l:"Landung vorbereiten"}
+        ];
+
+        const quizData = [
+            { text: "Пожалуйста, пристегните ремни.", correct: "belt" },
+            { text: "Поднимите столик.", correct: "table" },
+            { text: "Откройте шторку иллюминатора.", correct: "window" },
+            { text: "Уберите сумку на багажную полку.", correct: "shelf" },
+            { text: "Отключите мобильный телефон.", correct: "phone" },
+            { text: "Опустите подлокотники.", correct: "armrest" },
+            { text: "Поднимите спинку кресла.", correct: "seatback" },
+            { text: "Покажите ваш посадочный талон.", correct: "pass" },
+            { text: "Что вы желаете: курицу или рыбу?", correct: "food" },
+            { text: "Самолёт готовится к посадке.", correct: "landing" }
+        ];
+
+        let currentIdx = 0;
+        let answered = false;
+        let russianVoice = null;
+
+        function loadVoices() {
+            const voices = window.speechSynthesis.getVoices();
+            russianVoice = voices.find(v => v.lang.includes('ru') && (v.name.includes('Maxim') || v.name.includes('Pavel') || v.name.includes('Yuri'))) 
+                           || voices.find(v => v.lang.includes('ru'));
+        }
+        window.speechSynthesis.onvoiceschanged = loadVoices;
+
+        function startApp() {
+            document.getElementById('start-overlay').style.display = 'none';
+            loadVoices();
+            loadQuestion();
+        }
+
+        function loadQuestion() {
+            answered = false;
+            document.getElementById('next-btn').style.display = 'none';
+            document.getElementById('reset-btn').style.display = 'none';
+            document.getElementById('feedback').innerText = '';
+            
+            const data = quizData[currentIdx];
+            document.getElementById('progress-fill').style.width = (currentIdx / quizData.length) * 100 + '%';
+
+            const container = document.getElementById('image-container');
+            container.innerHTML = '';
+
+            const correctOpt = allOptions.find(o => o.id === data.correct);
+            const distractors = allOptions
+                .filter(o => o.id !== data.correct)
+                .sort(() => Math.random() - 0.5)
+                .slice(0, 3);
+
+            const currentOptions = [correctOpt, ...distractors].sort(() => Math.random() - 0.5);
+
+            currentOptions.forEach(opt => {
+                const card = document.createElement('div');
+                card.className = 'image-card';
+                card.innerHTML = `<span class="emoji">${opt.e}</span><span class="label">${opt.l}</span>`;
+                card.onclick = () => checkAnswer(opt.id, card);
+                container.appendChild(card);
+            });
+
+            setTimeout(playCurrentAudio, 600);
+        }
+
+        function playCurrentAudio() {
+            if (window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+            const utterance = new SpeechSynthesisUtterance(quizData[currentIdx].text);
+            if (russianVoice) utterance.voice = russianVoice;
+            utterance.lang = 'ru-RU';
+            utterance.rate = 0.8; 
+            window.speechSynthesis.speak(utterance);
+        }
+
+        function checkAnswer(id, card) {
+            if (answered) return;
+            answered = true;
+
+            const correctId = quizData[currentIdx].correct;
+            if (id === correctId) {
+                card.classList.add('correct');
+                document.getElementById('feedback').innerText = "Правильно! ✅";
+                document.getElementById('feedback').style.color = "var(--success)";
+            } else {
+                card.classList.add('wrong');
+                document.getElementById('feedback').innerText = "Неправильно! ❌";
+                document.getElementById('feedback').style.color = "var(--error)";
+            }
+
+            document.querySelectorAll('.image-card').forEach(c => c.classList.add('disabled'));
+            document.getElementById('next-btn').style.display = 'block';
+            document.getElementById('reset-btn').style.display = 'block';
+        }
+
+        function resetCurrentTask() {
+            answered = false;
+            document.getElementById('feedback').innerText = '';
+            document.getElementById('next-btn').style.display = 'none';
+            document.getElementById('reset-btn').style.display = 'none';
+            document.querySelectorAll('.image-card').forEach(c => {
+                c.classList.remove('correct', 'wrong', 'disabled');
+            });
+            playCurrentAudio();
+        }
+
+        function nextQuestion() {
+            currentIdx++;
+            if (currentIdx < quizData.length) {
+                loadQuestion();
+            } else {
+                showFinal();
+            }
+        }
+
+        function showFinal() {
+            document.getElementById('progress-fill').style.width = '100%';
+            document.getElementById('image-container').innerHTML = '';
+            document.querySelector('.audio-section').style.display = 'none';
+            document.getElementById('title').innerText = "Hervorragend!";
+            document.getElementById('feedback').innerText = "Du hast alle 10 Sätze im Flugzeug verstanden.";
+            document.getElementById('next-btn').innerText = "Alles Neustarten";
+            document.getElementById('next-btn').onclick = () => location.reload();
+            document.getElementById('reset-btn').style.display = 'none';
+            document.getElementById('next-btn').style.display = 'block';
+        }
+    </script>
+</body>
+</html>
