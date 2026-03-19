@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vokabeltrainer: Im Flugzeug</title>
+    <style>
+        :root {
+            --primary-green: #2e7d32;
+            --light-green: #4caf50;
+            --bg-green: #f1f8e9;
+            --card-front: #ffffff;
+            --card-back: #e8f5e9;
+            --text-color: #1b5e20;
+            --shadow: 0 8px 16px rgba(0,0,0,0.1);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-green);
+            color: var(--text-color);
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 1.8rem;
+            color: var(--primary-green);
+        }
+
+        .progress {
+            margin: 10px 0;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        /* Flashcard Container */
+        .flashcard-container {
+            perspective: 1000px;
+            width: 100%;
+            max-width: 500px;
+            height: 300px;
+            cursor: pointer;
+            margin-bottom: 30px;
+        }
+
+        .flashcard {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            text-align: center;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            transform-style: preserve-3d;
+            box-shadow: var(--shadow);
+            border-radius: 20px;
+        }
+
+        .flashcard.is-flipped {
+            transform: rotateY(180deg);
+        }
+
+        .card-face {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            -webkit-backface-visibility: hidden;
+            backface-visibility: hidden;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 30px;
+            border-radius: 20px;
+            border: 2px solid var(--light-green);
+        }
+
+        .card-front {
+            background-color: var(--card-front);
+        }
+
+        .card-back {
+            background-color: var(--card-back);
+            transform: rotateY(180deg);
+        }
+
+        .word-text {
+            font-size: 2rem;
+            font-weight: bold;
+            word-wrap: break-word;
+            max-width: 100%;
+        }
+
+        .note-text {
+            margin-top: 15px;
+            font-size: 1rem;
+            color: #666;
+            font-style: italic;
+        }
+
+        /* Controls */
+        .controls {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            width: 100%;
+            max-width: 500px;
+        }
+
+        button {
+            background-color: var(--primary-green);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        button:hover {
+            background-color: var(--light-green);
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .full-width {
+            grid-column: span 2;
+        }
+
+        footer {
+            margin-top: auto;
+            padding: 20px;
+            font-size: 0.8rem;
+            color: #888;
+            text-align: center;
+        }
+
+        /* Responsive Adjustments */
+        @media (max-width: 400px) {
+            .word-text { font-size: 1.5rem; }
+            .flashcard-container { height: 250px; }
+            h1 { font-size: 1.4rem; }
+        }
+    </style>
+</head>
+<body>
+
+<header>
+    <h1>Russisch Lernkartei</h1>
+    <p>Thema: Im Flugzeug</p>
+    <div class="progress" id="progress">1 / 81</div>
+</header>
+
+<div class="flashcard-container" id="cardContainer" onclick="toggleFlip()">
+    <div class="flashcard" id="card">
+        <div class="card-face card-front">
+            <div class="word-text" id="frontText">Загрузка...</div>
+        </div>
+        <div class="card-face card-back">
+            <div class="word-text" id="backText">Loading...</div>
+        </div>
+    </div>
+</div>
+
+<div class="controls">
+    <button onclick="prevCard()">← Vorherige</button>
+    <button onclick="nextCard()">Nächste →</button>
+    <button onclick="goHome()">🏠 An den Anfang</button>
+    <button onclick="shuffleCards()">🔀 Mischen</button>
+</div>
+
+<footer>
+    Steuerung: Pfeiltasten (← →), Leertaste/Enter (Umdrehen), Pos1 (Anfang)
+</footer>
+
+<script>
+    // Rohdaten der Vokabelliste
+    const rawData = `1. авиарежи́м – Flugmodus
+2. бага́ж – Gepäck
+3. бага́жная по́лка – Gepäckablage
+4. безопа́сность – Sicherheit
+5. биле́т – Ticket
+6. бортпроводни́к – Flugbegleiter
+7. взлёт – Start (Abflug)
+8. взлета́ть / взлете́ть – starten (abfliegen)
+9. включа́ть / включи́ть – einschalten
+10. вода́ – Wasser
+11. выбира́ть / вы́брать – wählen (auswählen)
+12. выключа́ть / вы́ключить – ausschalten
+13. выта́скивать / вы́тащить – herausziehen
+14. верхняя оде́жда – Oberbekleidung
+15. гото́виться / подгото́виться – sich vorbereiten
+16. жда́ть / подожда́ть – warten
+17. жела́ть / пожела́ть – wünschen
+18. занима́ть / заня́ть – einnehmen (einen Platz besetzen)
+19. заходи́ть / зайти́ – hineingehen (betreten)
+20. закрыва́ть / закры́ть – schließen
+21. иллюмина́тор – Bullauge (Flugzeugfenster)
+22. капита́н – Kapitän
+23. кла́сть / положи́ть – legen
+24. ко́фе – Kaffee
+25. кре́сло – Sessel (Sitz)
+26. ку́рица – Hähnchen
+27. лета́ть / полете́ть – fliegen
+28. лимо́н – Zitrone
+29. ме́сто – Platz
+30. минера́льная вода́ – Mineralwasser
+31. моби́льный телефо́н – Mobiltelefon
+32. молоко́ – Milch
+33. нау́шники – Kopfhörer
+34. находи́ть / найти́ – finden
+35. опуска́ть / опусти́ть – senken (herunterlassen)
+36. остана́вливаться / останови́ться – anhalten (zum Stehen kommen)
+37. остано́вка – Halt (Stopp)
+38. отключа́ть / отключи́ть – ausschalten (deaktivieren)
+39. открыва́ть / откры́ть – öffnen
+40. пассажи́р – Passagier
+41. переводи́ть / перевести́ – umstellen (versetzen in)
+42. пило́т – Pilot
+43. подлоко́тник – Armlehne
+44. поднима́ть / подня́ть – heben (hochstellen)
+45. полёт – Flug
+46. получа́ть / получи́ть – erhalten (bekommen)
+47. поса́дка – Landung
+48. поса́дочный тало́н – Bordkarte
+49. посереди́не – in der Mitte
+50. предлага́ть / предложи́ть – anbieten
+51. приноси́ть / принести́ – bringen
+52. пристёгивать / пристегну́ть – anschnallen
+53. прохо́д – Gang
+54. проходи́ть / пройти́ – durchgehen (passieren)
+55. ремни́ безопа́сности – Sicherheitsgurte
+56. ры́ба – Fisch
+57. ряд – Reihe
+58. рюкза́к – Rucksack
+59. са́хар – Zucker
+60. сади́ться / се́сть – sich setzen (auch: landen)
+61. сдава́ть / сда́ть – abgeben (Gepäck aufgeben)
+62. сигна́л – Signal
+63. сиде́нье – Sitz
+64. сиде́ть / посиде́ть – sitzen
+65. сла́дкое – Süßes
+66. снима́ть / снять – abnehmen (ausziehen)
+67. солёное – Salziges
+68. сок – Saft
+69. спи́нка кре́сла – Rückenlehne
+70. сто́лик – Tischchen
+71. стоя́ть / постоя́ть – stehen
+72. су́мка – Tasche
+73. табло́ – Anzeigetafel
+74. тамо́женный контро́ль – Zollkontrolle
+75. убира́ть / убра́ть – wegräumen (verstauen)
+76. у окна́ – am Fenster
+77. у прохо́да – am Gang
+78. чемода́н – Koffer
+79. чай – Tee
+80. шторка иллюминатора – Fensterblende
+81. электро́нное устро́йство – elektronisches Gerät`;
+
+    let cards = [];
+    let currentIndex = 0;
+    let isFlipped = false;
+
+    // Daten parsen
+    function parseData() {
+        const lines = rawData.trim().split('\n');
+        cards = lines.map(line => {
+            // Entferne Nummerierung am Anfang
+            const cleanLine = line.replace(/^\d+\.\s*/, '');
+            // Trenne Russisch und Deutsch am Bindestrich (En-Dash oder normales Minus)
+            const parts = cleanLine.split(/[–-]/);
+            return {
+                front: parts[0].trim(),
+                back: parts[1] ? parts[1].trim() : ""
+            };
+        });
+    }
+
+    // Karte anzeigen
+    function updateCard() {
+        const cardElement = document.getElementById('card');
+        const frontText = document.getElementById('frontText');
+        const backText = document.getElementById('backText');
+        const progress = document.getElementById('progress');
+
+        // Umdrehen zurücksetzen bei Kartenwechsel
+        isFlipped = false;
+        cardElement.classList.remove('is-flipped');
+
+        const currentCard = cards[currentIndex];
+        frontText.innerText = currentCard.front;
+        backText.innerText = currentCard.back;
+
+        // Dynamische Schriftgröße
+        adjustFontSize(frontText, currentCard.front);
+        adjustFontSize(backText, currentCard.back);
+
+        progress.innerText = `${currentIndex + 1} / ${cards.length}`;
+    }
+
+    function adjustFontSize(element, text) {
+        if (text.length > 30) {
+            element.style.fontSize = "1.2rem";
+        } else if (text.length > 20) {
+            element.style.fontSize = "1.5rem";
+        } else {
+            element.style.fontSize = "2rem";
+        }
+    }
+
+    // Interaktionen
+    function toggleFlip() {
+        isFlipped = !isFlipped;
+        document.getElementById('card').classList.toggle('is-flipped');
+    }
+
+    function nextCard() {
+        if (currentIndex < cards.length - 1) {
+            currentIndex++;
+            updateCard();
+        }
+    }
+
+    function prevCard() {
+        if (currentIndex > 0) {
+            currentIndex--;
+            updateCard();
+        }
+    }
+
+    function goHome() {
+        currentIndex = 0;
+        updateCard();
+    }
+
+    function shuffleCards() {
+        // Fisher-Yates Shuffle
+        for (let i = cards.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [cards[i], cards[j]] = [cards[j], cards[i]];
+        }
+        currentIndex = 0;
+        updateCard();
+    }
+
+    // Tastatursteuerung
+    document.addEventListener('keydown', (e) => {
+        switch(e.key) {
+            case 'ArrowRight':
+                nextCard();
+                break;
+            case 'ArrowLeft':
+                prevCard();
+                break;
+            case ' ':
+            case 'Enter':
+                e.preventDefault(); // Verhindert Scrollen bei Leertaste
+                toggleFlip();
+                break;
+            case 'Home':
+                goHome();
+                break;
+        }
+    });
+
+    // Initialisierung
+    parseData();
+    updateCard();
+</script>
+
+</body>
+</html>
